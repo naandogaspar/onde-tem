@@ -1,0 +1,685 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Lojas Próximas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #ff6b35 0%, #f7931e 25%, #ff4757 75%, #c44569 100%);
+            min-height: 100vh;
+            padding: 20px;
+            position: relative;
+            overflow-x: hidden;
+        }
+
+        body::before {
+            content: '';
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: radial-gradient(circle at 20% 80%, rgba(255, 107, 53, 0.3) 0%, transparent 50%),
+                        radial-gradient(circle at 80% 20%, rgba(196, 69, 105, 0.3) 0%, transparent 50%),
+                        radial-gradient(circle at 40% 40%, rgba(255, 71, 87, 0.2) 0%, transparent 50%);
+            pointer-events: none;
+            z-index: -1;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            text-align: center;
+            color: white;
+            margin-bottom: 30px;
+        }
+
+        .header h1 {
+            font-size: 2.8rem;
+            margin-bottom: 10px;
+            text-shadow: 0 4px 8px rgba(0, 0, 0, 0.3);
+        }
+
+        .search-container {
+            background: rgba(255, 107, 53, 0.15);
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 35px;
+            margin-bottom: 30px;
+            box-shadow: 0 15px 35px rgba(255, 71, 87, 0.3), 
+                        0 5px 15px rgba(196, 69, 105, 0.2);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+        }
+
+        .btn {
+            background: linear-gradient(45deg, #ff6b35, #ff4757, #c44569);
+            border: none;
+            padding: 16px 35px;
+            border-radius: 30px;
+            color: white;
+            font-size: 17px;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            box-shadow: 0 8px 25px rgba(255, 71, 87, 0.4), 
+                        0 3px 10px rgba(196, 69, 105, 0.3);
+            margin-right: 10px;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        .btn:hover {
+            transform: translateY(-3px) scale(1.05);
+            box-shadow: 0 15px 40px rgba(255, 71, 87, 0.6), 
+                        0 5px 20px rgba(196, 69, 105, 0.4);
+            background: linear-gradient(45deg, #ff4757, #ff6b35, #c44569);
+        }
+
+        .btn:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .filters {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            margin-bottom: 20px;
+        }
+
+        .filter-btn {
+            background: rgba(255, 107, 53, 0.2);
+            border: 2px solid rgba(255, 255, 255, 0.3);
+            padding: 12px 24px;
+            border-radius: 25px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            backdrop-filter: blur(10px);
+            font-weight: 500;
+        }
+
+        .filter-btn.active {
+            border-color: #ff4757;
+            background: linear-gradient(45deg, rgba(255, 71, 87, 0.4), rgba(196, 69, 105, 0.4));
+            box-shadow: 0 5px 20px rgba(255, 71, 87, 0.3);
+            transform: translateY(-2px);
+        }
+
+        .filter-btn:hover {
+            background: rgba(255, 71, 87, 0.3);
+            border-color: rgba(255, 255, 255, 0.6);
+            transform: translateY(-1px);
+            box-shadow: 0 5px 15px rgba(255, 107, 53, 0.3);
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            color: white;
+            margin: 20px 0;
+        }
+
+        .spinner {
+            border: 3px solid rgba(255, 255, 255, 0.3);
+            border-radius: 50%;
+            border-top: 3px solid #ff4757;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+            box-shadow: 0 0 20px rgba(255, 71, 87, 0.3);
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .stores-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
+            gap: 20px;
+            margin-top: 20px;
+        }
+
+        .store-card {
+            background: linear-gradient(145deg, rgba(255, 107, 53, 0.15), rgba(196, 69, 105, 0.1));
+            backdrop-filter: blur(15px);
+            border-radius: 20px;
+            padding: 25px;
+            color: white;
+            box-shadow: 0 10px 30px rgba(255, 71, 87, 0.2), 
+                        0 3px 10px rgba(196, 69, 105, 0.1);
+            transition: all 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            border-left: 5px solid;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            position: relative;
+            overflow: hidden;
+        }
+
+        .store-card::before {
+            content: '';
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: linear-gradient(45deg, rgba(255, 71, 87, 0.1), transparent, rgba(196, 69, 105, 0.1));
+            opacity: 0;
+            transition: opacity 0.3s ease;
+            pointer-events: none;
+        }
+
+        .store-card:hover::before {
+            opacity: 1;
+        }
+
+        .store-card:hover {
+            transform: translateY(-8px) scale(1.02);
+            box-shadow: 0 20px 60px rgba(255, 71, 87, 0.4), 
+                        0 10px 30px rgba(196, 69, 105, 0.3);
+            border-color: rgba(255, 255, 255, 0.3);
+        }
+
+        .store-card.restaurante { border-left-color: #ff6b35; }
+        .store-card.farmacia { border-left-color: #ff4757; }
+        .store-card.supermercado { border-left-color: #c44569; }
+        .store-card.posto { border-left-color: #f7931e; }
+        .store-card.banco { border-left-color: #ff9ff3; }
+
+        .store-header {
+            display: flex;
+            align-items: center;
+            margin-bottom: 15px;
+        }
+
+        .store-icon {
+            font-size: 2rem;
+            margin-right: 15px;
+        }
+
+        .store-name {
+            font-size: 1.4rem;
+            font-weight: bold;
+            text-shadow: 0 2px 4px rgba(0, 0, 0, 0.3);
+        }
+
+        .store-type {
+            font-size: 0.9rem;
+            opacity: 0.9;
+            text-transform: uppercase;
+            letter-spacing: 1.5px;
+            background: linear-gradient(45deg, #ff6b35, #ff4757);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            font-weight: 600;
+        }
+
+        .store-info {
+            margin-bottom: 15px;
+        }
+
+        .store-address {
+            margin-bottom: 10px;
+            opacity: 0.9;
+        }
+
+        .store-distance {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 15px;
+        }
+
+        .distance-badge {
+            background: linear-gradient(45deg, rgba(255, 107, 53, 0.3), rgba(255, 71, 87, 0.3));
+            backdrop-filter: blur(10px);
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-size: 0.9rem;
+            font-weight: bold;
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            box-shadow: 0 3px 10px rgba(255, 71, 87, 0.2);
+        }
+
+        .store-rating {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .stars {
+            color: #ffb347;
+            text-shadow: 0 0 10px rgba(255, 179, 71, 0.5);
+            filter: drop-shadow(0 0 3px rgba(255, 179, 71, 0.3));
+        }
+
+        .store-actions {
+            display: flex;
+            gap: 10px;
+        }
+
+        .action-btn {
+            flex: 1;
+            background: linear-gradient(45deg, rgba(255, 107, 53, 0.2), rgba(255, 71, 87, 0.2));
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 12px;
+            border-radius: 12px;
+            color: white;
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+            font-size: 0.9rem;
+            font-weight: 500;
+            backdrop-filter: blur(10px);
+            position: relative;
+            z-index: 1;
+        }
+
+        .action-btn:hover {
+            background: linear-gradient(45deg, rgba(255, 71, 87, 0.4), rgba(196, 69, 105, 0.3));
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(255, 71, 87, 0.3);
+            border-color: rgba(255, 255, 255, 0.4);
+        }
+
+        .user-location {
+            background: linear-gradient(135deg, rgba(255, 107, 53, 0.25), rgba(255, 71, 87, 0.2));
+            border: 1px solid rgba(255, 107, 53, 0.4);
+            backdrop-filter: blur(15px);
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+            color: white;
+            text-align: center;
+            box-shadow: 0 8px 25px rgba(255, 71, 87, 0.2);
+        }
+
+        .error-message {
+            background: linear-gradient(135deg, rgba(255, 71, 87, 0.25), rgba(196, 69, 105, 0.2));
+            border: 1px solid rgba(255, 71, 87, 0.4);
+            backdrop-filter: blur(15px);
+            border-radius: 15px;
+            padding: 20px;
+            color: white;
+            margin-top: 20px;
+            box-shadow: 0 8px 25px rgba(255, 71, 87, 0.2);
+        }
+
+        @media (max-width: 768px) {
+            .stores-grid {
+                grid-template-columns: 1fr;
+            }
+            
+            .filters {
+                justify-content: center;
+            }
+            
+            .header h1 {
+                font-size: 2.2rem;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🏪 Lojas Próximas</h1>
+            <p>Encontre estabelecimentos perto de você</p>
+        </div>
+
+        <div class="search-container">
+            <button id="findStoresBtn" class="btn" onclick="findNearbyStores()">
+                📍 Buscar Lojas Próximas
+            </button>
+
+            <div class="filters">
+                <button class="filter-btn active" data-type="todos" onclick="filterStores('todos')">
+                    Todos
+                </button>
+                <button class="filter-btn" data-type="farmacia" onclick="filterStores('farmacia')">
+                    💊 Farmácias
+                </button>
+                <button class="filter-btn" data-type="supermercado" onclick="filterStores('mercado')">
+                    🛒 Supermercados
+                </button>
+            </div>
+
+            <div id="loading" class="loading">
+                <div class="spinner"></div>
+                <p>Buscando lojas próximas...</p>
+            </div>
+
+            <div id="userLocation"></div>
+        </div>
+
+        <div id="storesContainer"></div>
+    </div>
+
+    <script>
+        let userLat = null;
+        let userLon = null;
+        let allStores = [];
+        let currentFilter = 'todos';
+
+        // Base de dados simulada de lojas (em um app real, viria de uma API)
+        const storesDatabase = [
+            {
+                "name": "Carrefour Drogaria Norte Shopping",
+                "type": "farmacia",
+                "lat": -22.8858714,
+                "lon": -43.2851097,
+                "address": "Av. Dom Hélder Câmara, 5474",
+                "rating": 4.3,
+                "phone": "(11) 3004-2222",
+                "hours": "06:00 - 23:00"
+            },
+            {
+                "name": "Municipal Market RJ - CADEG",
+                "type": "mercado",
+                "lat": -22.8953359,
+                "lon": -43.235262,
+                "address": "R. Cap. Félix, 110",
+                "rating": 4.5,
+                "phone": "(21) 3890-0202",
+                "hours": "24 horas"
+            },
+            {
+                "name": "Extra Mercado",
+                "type": "mercado",
+                "lat": -22.8534599,
+                "lon": -43.3490956,
+                "address": "Estr. do Barro Vermelho, 105",
+                "rating": 3.5,
+                "phone": "(800) 779-6761",
+                "hours": "07:00 - 22:00"
+            },
+            {
+                "name": "Mercado zona norte",
+                "type": "mercado",
+                "lat": -22.8431405,
+                "lon": -43.2626031,
+                "address": "Praça Dr. Waldir da Mota, 34",
+                "rating": 3.7,
+                "phone": "(21) 98534-6715",
+                "hours": "07:00 - 22:00"
+            },
+            {
+                "name": "Dom Atacadista",
+                "type": "mercado",
+                "lat": -22.8715058,
+                "lon": -43.2777173,
+                "address": "Av. Itaóca, 2650",
+                "rating": 4.5,
+                "phone": "(21) 3613-5706",
+                "hours": "07:00 - 22:00"
+            },
+            {
+                "name": "Drogarias Super Compra",
+                "type": "farmacia",
+                "lat": -22.9729797,
+                "lon": -43.3366144,
+                "address": "Av. Eng. Souza Filho, 1125",
+                "rating": null,
+                "phone": "(21) 98216-7340",
+                "hours": "24 horas"
+            },
+            {
+                "name": "Nossa Rede - Pavuna",
+                "type": "mercado",
+                "lat": -22.8199001,
+                "lon": -43.3600261,
+                "address": "Estr. de Botafogo, 1260",
+                "rating": 4.0,
+                "phone": "(21) 3847-3361",
+                "hours": "07:00 - 22:00"
+            },
+            {
+                "name": "Rede Economia de Supermercados",
+                "type": "mercado",
+                "lat": -22.8883209,
+                "lon": -43.2751083,
+                "address": "R. Cachambi, 362",
+                "rating": 3.9,
+                "phone": "(21) 2501-2356",
+                "hours": "08:00 - 22:00"
+            },
+            {
+                "name": "Rede Economia",
+                "type": "mercado",
+                "lat": -22.8915637,
+                "lon": -43.2826453,
+                "address": "R. José Bonifácio, 642",
+                "rating": 4.2,
+                "phone": null,
+                "hours": "07:30 - 22:00"
+            }
+        ];
+
+
+        function findNearbyStores() {
+            const btn = document.getElementById('findStoresBtn');
+            const loading = document.getElementById('loading');
+            const userLocationDiv = document.getElementById('userLocation');
+            
+            if (!navigator.geolocation) {
+                showError('Geolocalização não é suportada por este navegador.');
+                return;
+            }
+
+            btn.disabled = true;
+            loading.style.display = 'block';
+            userLocationDiv.innerHTML = '';
+
+            const options = {
+                enableHighAccuracy: true,
+                timeout: 10000,
+                maximumAge: 300000
+            };
+
+            navigator.geolocation.getCurrentPosition(
+                (position) => {
+                    userLat = position.coords.latitude;
+                    userLon = position.coords.longitude;
+                    
+                    showUserLocation(position);
+                    calculateDistancesAndDisplay();
+                    
+                    loading.style.display = 'none';
+                    btn.disabled = false;
+                },
+                (error) => {
+                    showError(error);
+                    loading.style.display = 'none';
+                    btn.disabled = false;
+                },
+                options
+            );
+        }
+
+        function showUserLocation(position) {
+            const userLocationDiv = document.getElementById('userLocation');
+            const accuracy = Math.round(position.coords.accuracy);
+            
+            userLocationDiv.innerHTML = `
+                <div class="user-location">
+                    <h3>📍 Sua Localização</h3>
+                    <p>Lat: ${position.coords.latitude.toFixed(6)}, 
+                       Lon: ${position.coords.longitude.toFixed(6)}</p>
+                    <p>Precisão: ${accuracy} metros</p>
+                </div>
+            `;
+        }
+
+        function calculateDistancesAndDisplay() {
+            // Calcular distância de cada loja para o usuário
+            allStores = storesDatabase.map(store => {
+                const distance = calculateDistance(userLat, userLon, store.lat, store.lon);
+                return { ...store, distance };
+            });
+
+            // Ordenar por distância
+            allStores.sort((a, b) => a.distance - b.distance);
+
+            displayStores(allStores);
+        }
+
+        function calculateDistance(lat1, lon1, lat2, lon2) {
+            // Fórmula de Haversine para calcular distância entre dois pontos
+            const R = 6371; // Raio da Terra em km
+            const dLat = deg2rad(lat2 - lat1);
+            const dLon = deg2rad(lon2 - lon1);
+            const a = 
+                Math.sin(dLat/2) * Math.sin(dLat/2) +
+                Math.cos(deg2rad(lat1)) * Math.cos(deg2rad(lat2)) * 
+                Math.sin(dLon/2) * Math.sin(dLon/2);
+            const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+            const distance = R * c; // Distância em km
+            return distance;
+        }
+
+        function deg2rad(deg) {
+            return deg * (Math.PI/180);
+        }
+
+        function displayStores(stores) {
+            const container = document.getElementById('storesContainer');
+            
+            if (stores.length === 0) {
+                container.innerHTML = `
+                    <div class="error-message">
+                        <h3>Nenhuma loja encontrada</h3>
+                        <p>Não foram encontradas lojas do tipo selecionado próximas à sua localização.</p>
+                    </div>
+                `;
+                return;
+            }
+
+            const storesHTML = stores.map(store => `
+                <div class="store-card ${store.type}">
+                    <div class="store-header">
+                        <div class="store-icon">${getStoreIcon(store.type)}</div>
+                        <div>
+                            <div class="store-name">${store.name}</div>
+                            <div class="store-type">${store.type}</div>
+                        </div>
+                    </div>
+                    
+                    <div class="store-info">
+                        <div class="store-address">📍 ${store.address}</div>
+                        <div class="store-distance">
+                            <span>📞 ${store.phone}</span>
+                            <span class="distance-badge">${store.distance.toFixed(1)} km</span>
+                        </div>
+                        <div class="store-rating">
+                            <span class="stars">${'★'.repeat(Math.floor(store.rating))}${'☆'.repeat(5 - Math.floor(store.rating))}</span>
+                            <span>${store.rating}</span>
+                            <span style="margin-left: auto;">🕒 ${store.hours}</span>
+                        </div>
+                    </div>
+                    
+                    <div class="store-actions">
+                        <button class="action-btn" onclick="openMaps(${store.lat}, ${store.lon})">
+                            🗺️ Direções
+                        </button>
+                        <button class="action-btn" onclick="callStore('${store.phone}')">
+                            📞 Ligar
+                        </button>
+                    </div>
+                </div>
+            `).join('');
+
+            container.innerHTML = `
+                <div class="stores-grid">
+                    ${storesHTML}
+                </div>
+            `;
+        }
+
+        function getStoreIcon(type) {
+            const icons = {
+                'restaurante': '🍕',
+                'farmacia': '💊',
+                'mercado': '🛒',
+                'posto': '⛽',
+                'banco': '🏦'
+            };
+            return icons[type] || '🏪';
+        }
+
+        function filterStores(type) {
+            // Atualizar botões ativos
+            document.querySelectorAll('.filter-btn').forEach(btn => {
+                btn.classList.remove('active');
+            });
+            document.querySelector(`[data-type="${type}"]`).classList.add('active');
+
+            currentFilter = type;
+
+            if (allStores.length === 0) {
+                return; // Ainda não buscou lojas
+            }
+
+            const filteredStores = type === 'todos' 
+                ? allStores 
+                : allStores.filter(store => store.type === type);
+
+            displayStores(filteredStores);
+        }
+
+        function openMaps(lat, lon) {
+            const url = `https://www.google.com/maps/dir/${userLat},${userLon}/${lat},${lon}`;
+            window.open(url, '_blank');
+        }
+
+        function callStore(phone) {
+            window.open(`tel:${phone}`);
+        }
+
+        function showError(error) {
+            const container = document.getElementById('storesContainer');
+            let errorMessage = '';
+
+            if (typeof error === 'string') {
+                errorMessage = error;
+            } else {
+                switch(error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMessage = "Permissão para acessar localização foi negada.";
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMessage = "Informações de localização não estão disponíveis.";
+                        break;
+                    case error.TIMEOUT:
+                        errorMessage = "Tempo limite para obter localização expirado.";
+                        break;
+                    default:
+                        errorMessage = "Erro desconhecido ao obter localização.";
+                        break;
+                }
+            }
+
+            container.innerHTML = `
+                <div class="error-message">
+                    <h3>❌ Erro</h3>
+                    <p>${errorMessage}</p>
+                    <p>Tente novamente ou permita o acesso à sua localização.</p>
+                </div>
+            `;
+        }
+    </script>
+</body>
+</html>
